@@ -1,0 +1,6 @@
+{
+  "name": "SG Air & Rain - Real-Time PM2.5 & Rainfall Monitor",
+  "description": "Live Singapore PM2.5 air quality and rainfall monitoring with NEA data, geolocation detection, interactive color-coded status, weather effects, and API health monitoring.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
