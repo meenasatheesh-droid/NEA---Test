@@ -53,21 +53,27 @@ export function getNearestRegion(lat: number, lng: number): SingaporeRegion {
 }
 
 /**
- * Fetch PM2.5 readings (tries local proxy first, falls back to open NEA endpoint)
+ * Fetch PM2.5 readings directly from https://api-open.data.gov.sg/v2/real-time/api/pm25
  */
 export async function fetchPM25Data(): Promise<PM25ApiResponse> {
+  // First attempt: fetch directly from NEA keyless endpoint
   try {
-    const res = await fetch('/api/pm25', { signal: AbortSignal.timeout(6000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.code === 0) return data;
+    const directRes = await fetch('https://api-open.data.gov.sg/v2/real-time/api/pm25', {
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    if (directRes.ok) {
+      const data = await directRes.json();
+      if (data && data.code === 0) return data;
     }
   } catch (err) {
-    console.warn('Backend proxy /api/pm25 failed, falling back to direct open data endpoint', err);
+    console.warn('Direct fetch from https://api-open.data.gov.sg/v2/real-time/api/pm25 failed, trying server proxy', err);
   }
 
-  // Fallback direct
-  const fallback = await fetch('https://api-open.data.gov.sg/v2/real-time/api/pm25', {
+  // Fallback to local server proxy
+  const fallback = await fetch('/api/pm25', {
     signal: AbortSignal.timeout(8000),
   });
   if (!fallback.ok) throw new Error(`PM2.5 API failed with HTTP ${fallback.status}`);

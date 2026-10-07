@@ -25,6 +25,7 @@ import { LocationHero } from './components/LocationHero';
 import { RegionGrid } from './components/RegionGrid';
 import { RainfallMap } from './components/RainfallMap';
 import { RainfallStationsList } from './components/RainfallStationsList';
+import { PM25DetailView } from './components/PM25DetailView';
 import { ApiHealthModal } from './components/ApiHealthModal';
 import { WeatherEffectControls } from './components/WeatherEffectControls';
 import {
@@ -55,7 +56,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLocating, setIsLocating] = useState(false);
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'stations' | 'advisory'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pm25' | 'map' | 'stations' | 'advisory'>('overview');
 
   // Load all NEA data & Health metrics
   const loadData = useCallback(async () => {
@@ -250,6 +251,18 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab('pm25')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'pm25'
+                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                : 'bg-slate-900/70 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <Wind className="w-4 h-4" />
+            <span>PM2.5 Live Data (NEA)</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('map')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all ${
               activeTab === 'map'
@@ -305,6 +318,7 @@ export default function App() {
               lastUpdatedRainfall={rainfallData?.data?.readings?.[0]?.timestamp || null}
               onRefresh={loadData}
               isRefreshing={isLoading}
+              onViewPM25Details={() => setActiveTab('pm25')}
             />
 
             {/* Regional 5-Zone Comparison Grid */}
@@ -331,6 +345,17 @@ export default function App() {
               userLocation={userLocation}
             />
           </div>
+        )}
+
+        {/* Tab: Dedicated PM2.5 Live Data Explorer */}
+        {activeTab === 'pm25' && (
+          <PM25DetailView
+            pm25Data={pm25Data}
+            selectedRegion={selectedRegion}
+            onSelectRegion={(r) => setSelectedRegion(r)}
+            onRefresh={loadData}
+            isRefreshing={isLoading}
+          />
         )}
 
         {/* Tab 2: Map Focus */}

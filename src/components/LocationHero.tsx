@@ -27,6 +27,7 @@ interface LocationHeroProps {
   lastUpdatedRainfall: string | null;
   onRefresh: () => void;
   isRefreshing: boolean;
+  onViewPM25Details?: () => void;
 }
 
 export const LocationHero: React.FC<LocationHeroProps> = ({
@@ -41,6 +42,7 @@ export const LocationHero: React.FC<LocationHeroProps> = ({
   lastUpdatedRainfall,
   onRefresh,
   isRefreshing,
+  onViewPM25Details,
 }) => {
   const pm25Band = getPM25QualityBand(pm25Value);
   const rainMm = nearestStation?.value ?? 0;
@@ -158,23 +160,36 @@ export const LocationHero: React.FC<LocationHeroProps> = ({
                   <Wind className="w-5 h-5" style={{ color: pm25Band.color }} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
-                    PM2.5 Air Quality
-                  </h3>
-                  <p className="text-xs text-slate-400">1-Hourly Concentration</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+                      PM2.5 Air Quality
+                    </h3>
+                    {onViewPM25Details && (
+                      <button
+                        onClick={onViewPM25Details}
+                        className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-0.5"
+                      >
+                        <span>api/pm25</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400">1-Hourly Concentration (NEA API)</p>
                 </div>
               </div>
 
               {/* Status Band Badge */}
-              <div
-                className="px-3.5 py-1.5 rounded-full text-xs font-extrabold border shadow-sm"
-                style={{
-                  backgroundColor: `${pm25Band.color}20`,
-                  borderColor: `${pm25Band.color}60`,
-                  color: pm25Band.color,
-                }}
-              >
-                {pm25Band.label}
+              <div className="flex items-center gap-2">
+                <div
+                  className="px-3.5 py-1.5 rounded-full text-xs font-extrabold border shadow-sm"
+                  style={{
+                    backgroundColor: `${pm25Band.color}20`,
+                    borderColor: `${pm25Band.color}60`,
+                    color: pm25Band.color,
+                  }}
+                >
+                  {pm25Band.label}
+                </div>
               </div>
             </div>
 
