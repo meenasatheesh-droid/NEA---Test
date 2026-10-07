@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 // Simple memory cache to minimize NEA latency and guard against rate-limiting
 let pm25Cache: { data: any; expiry: number } | null = null;
 let rainCache: { data: any; expiry: number } | null = null;
+let forecast2HrCache: { data: any; expiry: number } | null = null;
 const CACHE_TTL_MS = 20_000; // 20 seconds
 
 async function fetchWithTimeout(url: string, timeoutMs = 8000) {
@@ -77,6 +78,32 @@ async function startServer() {
       return res.status(502).json({
         code: -1,
         errorMsg: err.message || 'Failed to fetch rainfall data',
+      });
+    }
+  });
+
+  // NEA 2-Hour Weather Forecast API proxy with fallback & caching
+  app.get('/api/two-hr-forecast', async (req, res) => {
+    try {
+      const now = Date.now();
+      if (forecast2HrCache && now < forecast2HrCache.expiry) {
+        return res.json({ ...forecast2HrCache.data, cached: true });
+      }
+
+      const response = await fetchWithTimeout('https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast');
+      if (!response.ok) {
+        throw new Error(`NEA 2-Hr Forecast returned status ${response.status}`);
+      }
+      const data = await response.json();
+      forecast2HrCache = { data, expiry: now + CACHE_TTL_MS };
+      return res.json({ ...data, cached: false });
+    } catch (err: any) {
+      if (forecast2HrCache) {
+        return res.json({ ...forecast2HrCache.data, cached: true, stale: true, error: err.message });
+      }
+      return res.status(502).json({
+        code: -1,
+        errorMsg: err.message || 'Failed to fetch 2-hour forecast data',
       });
     }
   });

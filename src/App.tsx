@@ -3,6 +3,8 @@ import {
   SingaporeRegion,
   PM25ApiResponse,
   RainfallApiResponse,
+  TwoHourForecastResponse,
+  AreaForecast,
   ApiHealthResponse,
   StationWithRain,
   UserLocation,
@@ -11,8 +13,10 @@ import {
 import {
   fetchPM25Data,
   fetchRainfallData,
+  fetchTwoHourForecast,
   fetchApiHealth,
   processRainfallStations,
+  processAreaForecasts,
   getNearestRegion,
   calculateDistanceKm,
   getPM25QualityBand,
@@ -26,11 +30,13 @@ import { RegionGrid } from './components/RegionGrid';
 import { RainfallMap } from './components/RainfallMap';
 import { RainfallStationsList } from './components/RainfallStationsList';
 import { PM25DetailView } from './components/PM25DetailView';
+import { TwoHourForecastView } from './components/TwoHourForecastView';
 import { ApiHealthModal } from './components/ApiHealthModal';
 import { WeatherEffectControls } from './components/WeatherEffectControls';
 import {
   Wind,
   Droplets,
+  CloudSun,
   MapPin,
   Compass,
   AlertCircle,
@@ -44,6 +50,7 @@ import {
 export default function App() {
   const [pm25Data, setPm25Data] = useState<PM25ApiResponse | null>(null);
   const [rainfallData, setRainfallData] = useState<RainfallApiResponse | null>(null);
+  const [forecastData, setForecastData] = useState<TwoHourForecastResponse | null>(null);
   const [healthData, setHealthData] = useState<ApiHealthResponse | null>(null);
 
   const [selectedRegion, setSelectedRegion] = useState<SingaporeRegion>('central');
@@ -56,15 +63,16 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLocating, setIsLocating] = useState(false);
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'pm25' | 'map' | 'stations' | 'advisory'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pm25' | 'forecast' | 'map' | 'stations' | 'advisory'>('overview');
 
   // Load all NEA data & Health metrics
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [pm25Res, rainRes, healthRes] = await Promise.allSettled([
+      const [pm25Res, rainRes, forecastRes, healthRes] = await Promise.allSettled([
         fetchPM25Data(),
         fetchRainfallData(),
+        fetchTwoHourForecast(),
         fetchApiHealth(),
       ]);
 
@@ -73,6 +81,9 @@ export default function App() {
       }
       if (rainRes.status === 'fulfilled') {
         setRainfallData(rainRes.value);
+      }
+      if (forecastRes.status === 'fulfilled') {
+        setForecastData(forecastRes.value);
       }
       if (healthRes.status === 'fulfilled') {
         setHealthData(healthRes.value);
@@ -100,6 +111,27 @@ export default function App() {
       userLocation?.longitude
     );
   }, [rainfallData, userLocation]);
+
+  // Process 2-hour area forecasts with distance calculation
+  const processedForecasts: AreaForecast[] = useMemo(() => {
+    if (!forecastData) return [];
+    return processAreaForecasts(
+      forecastData,
+      userLocation?.latitude,
+      userLocation?.longitude
+    );
+  }, [forecastData, userLocation]);
+
+  // Find nearest forecast area to user
+  const nearestForecast: AreaForecast | undefined = useMemo(() => {
+    if (!processedForecasts.length) return undefined;
+    if (userLocation) {
+      return [...processedForecasts].sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999))[0];
+    }
+    return processedForecasts.find((f) => f.area.toLowerCase() === 'city') || processedForecasts[0];
+  }, [processedForecasts, userLocation]);
+
+  const forecastValidPeriod = forecastData?.data?.items?.[0]?.valid_period?.text || null;
 
   // Find nearest station to user or default to first in active region
   const nearestStation: StationWithRain | undefined = useMemo(() => {
@@ -263,6 +295,18 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab('forecast')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'forecast'
+                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                : 'bg-slate-900/70 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <CloudSun className="w-4 h-4 text-amber-400" />
+            <span>2-Hour Forecast (Animated)</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('map')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all ${
               activeTab === 'map'
@@ -319,6 +363,9 @@ export default function App() {
               onRefresh={loadData}
               isRefreshing={isLoading}
               onViewPM25Details={() => setActiveTab('pm25')}
+              nearestForecast={nearestForecast}
+              forecastValidPeriod={forecastValidPeriod}
+              onViewForecastDetails={() => setActiveTab('forecast')}
             />
 
             {/* Regional 5-Zone Comparison Grid */}
@@ -353,6 +400,17 @@ export default function App() {
             pm25Data={pm25Data}
             selectedRegion={selectedRegion}
             onSelectRegion={(r) => setSelectedRegion(r)}
+            onRefresh={loadData}
+            isRefreshing={isLoading}
+          />
+        )}
+
+        {/* Tab: Dedicated 2-Hour Weather Forecast (Animated) */}
+        {activeTab === 'forecast' && (
+          <TwoHourForecastView
+            forecastData={forecastData}
+            forecasts={processedForecasts}
+            userLocation={userLocation}
             onRefresh={loadData}
             isRefreshing={isLoading}
           />

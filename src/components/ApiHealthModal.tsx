@@ -106,13 +106,13 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({
           </div>
 
           {/* Endpoints Detail Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             {/* PM2.5 API Health */}
             <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(healthData?.services.nea_pm25.status)}
-                  <span className="text-sm font-bold text-white">NEA PM2.5 API</span>
+                  <span className="text-sm font-bold text-white">PM2.5 API</span>
                 </div>
                 <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   HTTP {healthData?.services.nea_pm25.statusCode || 200}
@@ -127,13 +127,13 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Regions Reporting:</span>
+                  <span>Regions:</span>
                   <span className="text-white font-mono">
                     {healthData?.services.nea_pm25.regionsAvailable ?? 5} / 5
                   </span>
                 </div>
                 <div className="flex justify-between truncate">
-                  <span>Last Data Sync:</span>
+                  <span>Last Sync:</span>
                   <span className="text-slate-300 font-mono text-[11px]">
                     {healthData?.services.nea_pm25.lastUpdated
                       ? new Date(healthData.services.nea_pm25.lastUpdated).toLocaleTimeString()
@@ -142,8 +142,8 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800/80 text-[11px] font-mono text-slate-500 truncate">
-                https://api-open.data.gov.sg/v2/real-time/api/pm25
+              <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 truncate">
+                /api/pm25
               </div>
             </div>
 
@@ -152,7 +152,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(healthData?.services.nea_rainfall.status)}
-                  <span className="text-sm font-bold text-white">NEA Rainfall API</span>
+                  <span className="text-sm font-bold text-white">Rainfall API</span>
                 </div>
                 <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   HTTP {healthData?.services.nea_rainfall.statusCode || 200}
@@ -167,13 +167,13 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Active Stations:</span>
+                  <span>Stations:</span>
                   <span className="text-white font-mono">
-                    {healthData?.services.nea_rainfall.activeStations ?? '--'} stations
+                    {healthData?.services.nea_rainfall.activeStations ?? '--'}
                   </span>
                 </div>
                 <div className="flex justify-between truncate">
-                  <span>Last Data Sync:</span>
+                  <span>Last Sync:</span>
                   <span className="text-slate-300 font-mono text-[11px]">
                     {healthData?.services.nea_rainfall.lastUpdated
                       ? new Date(healthData.services.nea_rainfall.lastUpdated).toLocaleTimeString()
@@ -182,8 +182,48 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800/80 text-[11px] font-mono text-slate-500 truncate">
-                https://api-open.data.gov.sg/v2/real-time/api/rainfall
+              <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 truncate">
+                /api/rainfall
+              </div>
+            </div>
+
+            {/* 2-Hour Forecast API Health */}
+            <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(healthData?.services.nea_two_hr_forecast?.status)}
+                  <span className="text-sm font-bold text-white">2-Hr Forecast</span>
+                </div>
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  HTTP {healthData?.services.nea_two_hr_forecast?.statusCode || 200}
+                </span>
+              </div>
+
+              <div className="text-xs space-y-1.5 text-slate-400 font-medium">
+                <div className="flex justify-between">
+                  <span>Latency:</span>
+                  <span className="text-white font-mono font-bold">
+                    {healthData?.services.nea_two_hr_forecast?.latencyMs ?? '--'} ms
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Areas:</span>
+                  <span className="text-white font-mono">
+                    {healthData?.services.nea_two_hr_forecast?.areasCount ?? 47} towns
+                  </span>
+                </div>
+                <div className="flex justify-between truncate">
+                  <span>Last Sync:</span>
+                  <span className="text-slate-300 font-mono text-[11px]">
+                    {healthData?.services.nea_two_hr_forecast?.lastUpdated
+                      ? new Date(healthData.services.nea_two_hr_forecast.lastUpdated).toLocaleTimeString()
+                      : '--'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500 truncate">
+                /api/two-hr-forecast
               </div>
             </div>
           </div>

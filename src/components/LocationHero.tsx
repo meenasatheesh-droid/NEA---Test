@@ -1,6 +1,7 @@
 import React from 'react';
-import { SingaporeRegion, StationWithRain, UserLocation } from '../types/weather';
-import { getPM25QualityBand, getRainfallQualityBand, SINGAPORE_REGIONS_COORDS } from '../services/neaApi';
+import { SingaporeRegion, StationWithRain, UserLocation, AreaForecast } from '../types/weather';
+import { getPM25QualityBand, getRainfallQualityBand, SINGAPORE_REGIONS_COORDS, getWeatherForecastStyle } from '../services/neaApi';
+import { AnimatedWeatherIcon } from './AnimatedWeatherIcon';
 import {
   MapPin,
   Navigation,
@@ -13,6 +14,7 @@ import {
   Compass,
   ChevronRight,
   Info,
+  Calendar,
 } from 'lucide-react';
 
 interface LocationHeroProps {
@@ -28,6 +30,9 @@ interface LocationHeroProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   onViewPM25Details?: () => void;
+  nearestForecast?: AreaForecast | null;
+  forecastValidPeriod?: string | null;
+  onViewForecastDetails?: () => void;
 }
 
 export const LocationHero: React.FC<LocationHeroProps> = ({
@@ -43,10 +48,14 @@ export const LocationHero: React.FC<LocationHeroProps> = ({
   onRefresh,
   isRefreshing,
   onViewPM25Details,
+  nearestForecast,
+  forecastValidPeriod,
+  onViewForecastDetails,
 }) => {
   const pm25Band = getPM25QualityBand(pm25Value);
   const rainMm = nearestStation?.value ?? 0;
   const rainBand = getRainfallQualityBand(rainMm);
+  const forecastStyle = nearestForecast ? getWeatherForecastStyle(nearestForecast.forecast) : null;
 
   // Gauge percentage calculation (0 to 300 scale)
   const gaugePercent = Math.min(100, Math.round((pm25Value / 200) * 100));
@@ -146,6 +155,41 @@ export const LocationHero: React.FC<LocationHeroProps> = ({
           );
         })}
       </div>
+
+      {/* Animated 2-Hour Weather Outlook Banner */}
+      {nearestForecast && forecastStyle && (
+        <div className="mb-4 p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3.5">
+            <div className="p-2 rounded-2xl bg-slate-900 border border-slate-800 shrink-0 shadow-md">
+              <AnimatedWeatherIcon type={forecastStyle.iconType} size="md" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+                  2-Hour Weather Outlook
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+                  {forecastValidPeriod || 'Next 2 Hours'}
+                </span>
+              </div>
+              <div className="text-sm font-extrabold text-white mt-0.5 flex items-center gap-2">
+                <span>{nearestForecast.area}:</span>
+                <span style={{ color: forecastStyle.color }}>{nearestForecast.forecast}</span>
+              </div>
+            </div>
+          </div>
+
+          {onViewForecastDetails && (
+            <button
+              onClick={onViewForecastDetails}
+              className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto transition-all"
+            >
+              <span>Explore 47 Areas</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Main Grid: PM2.5 Card & Rainfall Card */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-2">

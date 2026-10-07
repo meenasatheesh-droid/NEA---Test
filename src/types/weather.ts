@@ -63,6 +63,47 @@ export interface StationWithRain extends RainfallStation {
   timestamp?: string;
 }
 
+export interface AreaMetadata {
+  name: string;
+  label_location: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface AreaForecast {
+  area: string;
+  forecast: string;
+  distanceKm?: number;
+  coords?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface TwoHourValidPeriod {
+  start: string;
+  end: string;
+  text: string;
+}
+
+export interface TwoHourForecastItem {
+  update_timestamp: string;
+  timestamp: string;
+  valid_period: TwoHourValidPeriod;
+  forecasts: AreaForecast[];
+}
+
+export interface TwoHourForecastResponse {
+  code: number;
+  data: {
+    area_metadata: AreaMetadata[];
+    items: TwoHourForecastItem[];
+  };
+  errorMsg: string;
+  cached?: boolean;
+}
+
 export interface ApiHealthResponse {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
@@ -86,6 +127,17 @@ export interface ApiHealthResponse {
       latencyMs: number;
       lastUpdated: string | null;
       activeStations: number;
+      error: string | null;
+    };
+    nea_two_hr_forecast: {
+      name: string;
+      endpoint: string;
+      status: 'up' | 'down' | 'degraded' | 'unknown';
+      statusCode: number;
+      latencyMs: number;
+      lastUpdated: string | null;
+      areasCount: number;
+      validPeriod: string | null;
       error: string | null;
     };
   };

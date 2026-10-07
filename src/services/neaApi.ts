@@ -2,6 +2,8 @@ import {
   SingaporeRegion,
   PM25ApiResponse,
   RainfallApiResponse,
+  TwoHourForecastResponse,
+  AreaForecast,
   ApiHealthResponse,
   StationWithRain,
   PM25QualityBand,
@@ -100,6 +102,156 @@ export async function fetchRainfallData(): Promise<RainfallApiResponse> {
   });
   if (!fallback.ok) throw new Error(`Rainfall API failed with HTTP ${fallback.status}`);
   return fallback.json();
+}
+
+/**
+ * Fetch 2-Hour Weather Forecast directly from https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast
+ */
+export async function fetchTwoHourForecast(): Promise<TwoHourForecastResponse> {
+  // First attempt: fetch directly from NEA keyless endpoint
+  try {
+    const directRes = await fetch('https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast', {
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    if (directRes.ok) {
+      const data = await directRes.json();
+      if (data && data.code === 0) return data;
+    }
+  } catch (err) {
+    console.warn('Direct fetch from https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast failed, trying server proxy', err);
+  }
+
+  // Fallback to local server proxy
+  const fallback = await fetch('/api/two-hr-forecast', {
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!fallback.ok) throw new Error(`2-Hour Forecast API failed with HTTP ${fallback.status}`);
+  return fallback.json();
+}
+
+/**
+ * Merges area forecasts with coordinates and calculates distance to user
+ */
+export function processAreaForecasts(
+  response: TwoHourForecastResponse,
+  userLat?: number,
+  userLng?: number
+): AreaForecast[] {
+  const forecasts = response?.data?.items?.[0]?.forecasts || [];
+  const metadataMap = new Map<string, { latitude: number; longitude: number }>();
+
+  (response?.data?.area_metadata || []).forEach((meta) => {
+    metadataMap.set(meta.name, meta.label_location);
+  });
+
+  return forecasts.map((f) => {
+    const coords = metadataMap.get(f.area);
+    const distanceKm =
+      coords && userLat !== undefined && userLng !== undefined
+        ? calculateDistanceKm(userLat, userLng, coords.latitude, coords.longitude)
+        : undefined;
+
+    return {
+      ...f,
+      coords,
+      distanceKm,
+    };
+  });
+}
+
+export interface ForecastStyle {
+  iconType: 'sunny' | 'partly-cloudy' | 'cloudy' | 'rain' | 'thunder' | 'haze' | 'wind';
+  color: string;
+  badgeBg: string;
+  textColor: string;
+  category: 'Clear / Fair' | 'Cloudy' | 'Rain / Showers' | 'Thunderstorm' | 'Haze';
+  animation: string;
+}
+
+/**
+ * Returns weather icon, style, and animation attributes for NEA 2-Hour forecast descriptions
+ */
+export function getWeatherForecastStyle(forecast: string): ForecastStyle {
+  const text = (forecast || '').toLowerCase();
+
+  if (text.includes('thunder')) {
+    return {
+      iconType: 'thunder',
+      color: '#8b5cf6', // violet-500
+      badgeBg: 'bg-violet-500/15 border-violet-500/30 text-violet-300',
+      textColor: 'text-violet-400',
+      category: 'Thunderstorm',
+      animation: 'animate-bounce',
+    };
+  }
+
+  if (text.includes('rain') || text.includes('shower')) {
+    return {
+      iconType: 'rain',
+      color: '#38bdf8', // sky-400
+      badgeBg: 'bg-sky-500/15 border-sky-500/30 text-sky-300',
+      textColor: 'text-sky-400',
+      category: 'Rain / Showers',
+      animation: 'animate-pulse',
+    };
+  }
+
+  if (text.includes('hazy') || text.includes('haze')) {
+    return {
+      iconType: 'haze',
+      color: '#f59e0b', // amber-500
+      badgeBg: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
+      textColor: 'text-amber-400',
+      category: 'Haze',
+      animation: 'animate-pulse',
+    };
+  }
+
+  if (text.includes('partly cloudy')) {
+    return {
+      iconType: 'partly-cloudy',
+      color: '#06b6d4', // cyan-500
+      badgeBg: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300',
+      textColor: 'text-cyan-400',
+      category: 'Cloudy',
+      animation: 'animate-pulse',
+    };
+  }
+
+  if (text.includes('cloudy')) {
+    return {
+      iconType: 'cloudy',
+      color: '#94a3b8', // slate-400
+      badgeBg: 'bg-slate-500/15 border-slate-500/30 text-slate-300',
+      textColor: 'text-slate-400',
+      category: 'Cloudy',
+      animation: 'animate-pulse',
+    };
+  }
+
+  if (text.includes('wind')) {
+    return {
+      iconType: 'wind',
+      color: '#14b8a6', // teal-500
+      badgeBg: 'bg-teal-500/15 border-teal-500/30 text-teal-300',
+      textColor: 'text-teal-400',
+      category: 'Clear / Fair',
+      animation: 'animate-pulse',
+    };
+  }
+
+  // Default Fair / Sunny
+  return {
+    iconType: 'sunny',
+    color: '#eab308', // yellow-500
+    badgeBg: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300',
+    textColor: 'text-yellow-400',
+    category: 'Clear / Fair',
+    animation: 'animate-spin-slow',
+  };
 }
 
 /**
